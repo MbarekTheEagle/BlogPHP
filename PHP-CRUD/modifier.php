@@ -10,149 +10,176 @@
     
     <style>
 
-body {
-    background-color: #D3EBCD;
-}
-.back_btn {
-    color: #2bc48a;
-    text-decoration: 0;
-    display: flex;
-    align-items: center;
-    }
-.back_btn img {
-        height: 16px;
-        margin-right:5px ;
+        body {
+            background-color: #D3EBCD;
+        }
+        .back_btn {
+            color: #2bc48a;
+            text-decoration: 0;
+            display: flex;
+            align-items: center;
+            }
+        .back_btn img {
+                height: 16px;
+                margin-right:5px ;
+                }
+
+        .form {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
 
-.form {
-    width: 50%;
-    margin: auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-}
+        .form h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-.form h2 {
-    text-align: center;
-    margin-bottom: 20px;
-}
+        .form label {
+            font-weight: bold;
+        }
 
-.form label {
-    font-weight: bold;
-}
+        .form input[type="text"],
+        .form input[type="number"],
+        .form textarea,
+        .form input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: block; /* Set display property to block */
+        }
 
-.form input[type="text"],
-.form input[type="number"],
-.form textarea,
-.form input[type="file"] {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    display: block; /* Set display property to block */
-}
+        .form input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-.form input[type="submit"] {
-    width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
+        .form input[type="submit"]:hover {
+            background-color: #45a049;
+        }
 
-.form input[type="submit"]:hover {
-    background-color: #45a049;
-}
+        .back_btn {
+            display: inline-block;
+            text-decoration: none;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
 
-.back_btn {
-    display: inline-block;
-    text-decoration: none;
-    margin-bottom: 20px;
-    color: #4CAF50;
-    font-weight: bold;
-}
+        .back_btn img {
+            vertical-align: middle;
+            margin-right: 5px;
+        }
 
-.back_btn img {
-    vertical-align: middle;
-    margin-right: 5px;
-}
-
-.erreur_message {
-    color: red;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 10px;
-}
+        .erreur_message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
 
     </style>
 </head>
 <body>
     <div class="form">
     <?php
+    // Include the database connection file
+    include_once "connection.php";
 
-            //connexion à la base de donnée
-            include_once "connection.php";
-            //on récupère le id dans le lien
-            $id = $_GET['id'];
-            //requête pour afficher les infos d'un employé
-            $req = mysqli_query($con , "SELECT * FROM Employe WHERE id = $id");
-            $row = mysqli_fetch_assoc($req);
+    // Check if the ID is provided in the URL
+    if(isset($_GET['id'])) {
+        $id = $_GET['id'];
 
+        // Retrieve the employee details from the database
+        $query = "SELECT * FROM Employe WHERE id = $id";
+        $result = mysqli_query($con, $query);
 
-            //vérifier que le bouton ajouter a bien été cliqué
-            if(isset($_POST['button'])){
-            //extraction des informations envoyé dans des variables par la methode POST
-            extract($_POST);
-            //verifier que tous les champs ont été remplis
-            if(isset($title) && isset($subtitle) && isset($content) && isset($idwriter) && isset($filenameimg)){
-                //requête de modification
-                $req = mysqli_query($con, "UPDATE employe SET title = '$title' , subtitle = '$subtitle' , content = '$content', idwriter = '$idwriter', filenameimg = '$filenameimg' WHERE id = $id");
-                if($req){//si la requête a été effectuée avec succès , on fait une redirection
-                    $tempname = $_FILES["uploadfile"]["tmp_name"];
-                    $folder = "./img/" . $filenameimg;
-                    move_uploaded_file($tempname, $folder);
+        if(mysqli_num_rows($result) == 1) {
+            $row = mysqli_fetch_assoc($result);
+        } else {
+            echo "Employee not found.";
+            exit;
+        }
+    } else {
+        echo "Employee ID not provided.";
+        exit;
+    }
 
-                    header("location: admin.php");
-                }else {//si non
-                    $message = "Employé non modifié";
+    // Check if the form is submitted
+    if(isset($_POST['button'])) {
+        // Extract form data
+        $title = $_POST['title'];
+        $subtitle = $_POST['subtitle'];
+        $content = $_POST['content'];
+        $idwriter = $_POST['idwriter'];
+
+        // Check if all form fields are filled
+        if(!empty($title) && !empty($subtitle) && !empty($content) && !empty($idwriter)) {
+            // Check if a new image file is uploaded
+            if(isset($_FILES['uploadfile']) && $_FILES['uploadfile']['error'] === UPLOAD_ERR_OK) {
+                $filenameimg = $_FILES["uploadfile"]["name"];
+                $tempname = $_FILES["uploadfile"]["tmp_name"];
+                $folder = "./img/" . $filenameimg;
+                // Move uploaded file to destination folder
+                if(move_uploaded_file($tempname, $folder)) {
+                    // Update employee details in the database
+                    $query = "UPDATE employe SET title = '$title', subtitle = '$subtitle', content = '$content', idwriter = '$idwriter', filenameimg = '$filenameimg' WHERE id = $id";
+                    $result = mysqli_query($con, $query);
+                    if($result) {
+                        header("location: admin.php");
+                        exit;
+                    } else {
+                        $message = "Failed to update employee details.";
+                    }
+                } else {
+                    $message = "Failed to move uploaded file.";
                 }
-
-            }else {
-                //si non
-                $message = "Veuillez remplir tous les champs !";
+            } else {
+                // Update employee details without changing the image
+                $query = "UPDATE employe SET title = '$title', subtitle = '$subtitle', content = '$content', idwriter = '$idwriter' WHERE id = $id";
+                $result = mysqli_query($con, $query);
+                if($result) {
+                    header("location: admin.php");
+                    exit;
+                } else {
+                    $message = "Failed to update employee details.";
+                }
             }
-            }
+        } else {
+            $message = "Please fill in all fields.";
+        }
+    }
+    ?>
 
-?>
-
+    <div class="form">
         <a href="admin.php" class="back_btn"><img src="images/back.png"> Retour </a>
         <h2>Modifier l'employé</h2>
-        <p class="erreur_message">
-        <?php 
-              if(isset($message)){
-                  echo $message ;
-              }
-           ?>
-        </p> 
-        <form action="" method="POST">
+        <?php if(isset($message)) echo "<p class='erreur_message'>$message</p>"; ?>
+        <form action="" method="POST" enctype="multipart/form-data">
             <label>Nom</label>
-            <input type="text" name="title" value="<?=$row['title']?>">
+            <input type="text" name="title" value="<?= $row['title'] ?>">
             <label>Prénom</label>
-            <input type="text" name="subtitle" value="<?=$row['subtitle']?>">
+            <input type="text" name="subtitle" value="<?= $row['subtitle'] ?>">
             <label>Content</label>
-            <textarea id="editor" rows="10" name="content"  ><?=$row['content']?></textarea>
+            <textarea id="editor" rows="10" name="content"><?= $row['content'] ?></textarea>
             <label>idwriter</label>
-            <input type="number" name="idwriter" value="<?=$row['idwriter']?>"> 
+            <input type="number" name="idwriter" value="<?= $row['idwriter'] ?>">
             <label>Image</label>
-            <input type="file" name="uploadfile" value=""  />
-            <img src="./img/<?php echo $row['filenameimg']; ?>" class="img-fluid" alt="Responsive image" style=' height: 420px;'/>
+            <input type="file" name="uploadfile">
+            <img src="./img/<?= $row['filenameimg'] ?>" class="img-fluid" alt="Employee Image" style='width: 300px;'>
             <input type="submit" value="Modifier" name="button">
         </form>
-   </div>
+    </div>
 
     <script src="https://cdn.ckeditor.com/ckeditor5/35.2.0/classic/ckeditor.js"></script>
     <script>
